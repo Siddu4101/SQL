@@ -1,12 +1,6 @@
 # Basics of Structured Query Language (SQL)
 
-## Contents 
-- ### [📘 Overview](#overview)
-
----
-<details>
-
-### <summary id="overview">📘 Overview</summary>
+### 📘 Overview
 
 1. **🗄️ What is a Database?**
  - A database is a structured place to store data so it can be retrieved quickly when needed.
@@ -48,4 +42,3 @@ a) **Relational** (uses SQL and stores data in tables)
   <img src="./source/TypesOfCommands.png" alt="SQL command categories" style="width:420px;height:auto;" />
 </div>
 
-</details>
