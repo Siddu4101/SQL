@@ -2,4 +2,5 @@
 
 
 ## Concepts
-- 📦 [Basics](basics/README.md)
+- ### 📦 [Overview](basics/README.md)
+- ### 📑 [Select clauses](selectClause/README.md)
