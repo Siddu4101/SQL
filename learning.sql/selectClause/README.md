@@ -3,7 +3,7 @@
 In this section, we’ll explore the most common SELECT query clauses with clear examples you can copy and run.
 
 Data source:
-- [customerAndOrderInit.sql](../datasource/customerAndOrderInit.sql)
+- [customerAndOrderInit.sql](../../datasource/customerAndOrderInit.sql)
 - A sample database, schema, tables, and dummy data were created using the above script.
 
 ---
