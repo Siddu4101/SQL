@@ -5,7 +5,8 @@
 
 ---
 <details>
-<summary id="overview">📘 Overview</summary>
+
+### <summary id="overview">📘 Overview</summary>
 
 1. **🗄️ What is a Database?**
  - A database is a structured place to store data so it can be retrieved quickly when needed.
