@@ -227,3 +227,6 @@ Use this **decision tree** to help you pick the right join:
 - Do you want **everything from both tables**? → Use **FULL JOIN** 🌐
 - Do you want **only non-matching rows**? → Use **Anti Joins** (LEFT/RIGHT/FULL + `WHERE ... IS NULL`) 🚫
 - Do you want **every combination of rows**? → Use **CROSS JOIN** ✖️
+
+
+## multi joins:
