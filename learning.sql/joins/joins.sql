@@ -68,4 +68,12 @@ SELECT c.first_name, o.order_id, o.sales
 FROM customers c
 CROSS JOIN orders o ; --this joins don't need any matching key
 
+--multijoin example
+/*Q: Task: Using SalesDB, Retrieve a list of all orders, along with the related customer, product,
+and employee details with fieldsOrder ID, Customer's name, Product name, Sales, Price, Sales person's name */
+
+SELECT so.order_id, sc.firstname customer_name, sp.product, so.sales, sp.price, se.first_name sales_person  FROM sales_orders so
+LEFT JOIN sales_customers sc ON sc.customer_id = so.customer_id
+LEFT JOIN sales_products sp ON sp.product_id = so.product_id
+LEFT JOIN sales_employee se ON se.employee_id = so.sales_person_id
 

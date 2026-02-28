@@ -233,4 +233,19 @@ Use this **decision tree** to help you pick the right join:
 - Do you want **every combination of rows**? → Use **CROSS JOIN** ✖️
 
 
-## multi joins:
+## 🔗 Multi Joins
+
+We can also join **more than two tables** in a single query to get richer information.
+
+> 💡 **Example task:** Using `SalesDB`, retrieve a list of all orders along with the related
+> customer, product, and employee details. Show: **Order ID**, **Customer's name**,
+> **Product name**, **Sales**, **Price**, and **Sales person's name**.
+
+```sql
+-- Multi-join example: sales_orders + sales_customers + sales_products + sales_employee
+SELECT so.order_id, sc.firstname AS customer_name, sp.product AS product_name, so.sales, sp.price, se.first_name AS sales_person
+FROM sales_orders so
+LEFT JOIN sales_customers sc ON sc.customer_id = so.customer_id
+LEFT JOIN sales_products  sp ON sp.product_id   = so.product_id
+LEFT JOIN sales_employee  se ON se.employee_id  = so.sales_person_id;
+```
