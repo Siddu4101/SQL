@@ -16,7 +16,7 @@ We can combine data in **two main ways**:
      - `INTERSECT` / `EXCEPT` ➖ may reduce rows
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/waysOfDataJoin.png" alt="waysOfDataJoin" style="width:420px;height:auto;" />
+  <img src="source/waysOfDataJoin.png" alt="waysOfDataJoin" style="width:420px;height:auto;" />
 </div>
 
 ---
@@ -28,7 +28,7 @@ When we join two tables, we may want to see:
 - **Non matching** from one side
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/joinPossibilities.png" alt="joinPossibilities" style="width:420px;height:auto;" />
+  <img src="source/joinPossibilities.png" alt="joinPossibilities" style="width:420px;height:auto;" />
 </div>
 
 Based on these possibilities, we typically talk about **9 joins**:
@@ -40,14 +40,14 @@ Based on these possibilities, we typically talk about **9 joins**:
 ## 🅰️ Basic Joins
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/basicJoins.png" alt="basicJoins" style="width:420px;height:auto;" />
+  <img src="source/basicJoins.png" alt="basicJoins" style="width:420px;height:auto;" />
 </div>
 
 ### 1️⃣ No Join (Just Separate Queries)
 Return data from each table **individually**, without combining them.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/noJoin.png" alt="noJoin" style="width:420px;height:auto;" />
+  <img src="source/noJoin.png" alt="noJoin" style="width:420px;height:auto;" />
 </div>
 
 ```sql
@@ -65,7 +65,7 @@ FROM orders;
 **Inner Join** brings only the **matching rows** that exist in **both tables**.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/InnerJoin.png" alt="InnerJoin" style="width:420px;height:auto;" />
+  <img src="source/InnerJoin.png" alt="InnerJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Select all the customers who have made **at least one** order._
@@ -84,7 +84,7 @@ ON c.id = o.customer_id; --by default the join INNER u can mention it explicitel
 from the right table**. If there is **no match**, the right table columns become **NULL**.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/leftJoin.png" alt="leftJoin" style="width:420px;height:auto;" />
+  <img src="source/leftJoin.png" alt="leftJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Get all customers, whether they have orders or not._
@@ -103,7 +103,7 @@ ON c.id  = o.customer_id;
 from the left table**. If there is **no match**, the left table columns become **NULL**.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/rightJoin.png" alt="rightJoin" style="width:420px;height:auto;" />
+  <img src="source/rightJoin.png" alt="rightJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Get all orders, even if they don’t have a matching customer (e.g., bad data)._ 
@@ -135,7 +135,7 @@ ON c.id = o.customer_id ;
 ## 🅱️ Advanced Joins (Anti Joins & Special)
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/advanceJoin.png" alt="advanceJoin" style="width:420px;height:auto;" />
+  <img src="source/advanceJoin.png" alt="advanceJoin" style="width:420px;height:auto;" />
 </div>
 
 > 🔎 **Note:** For "anti joins" there is usually **no special keyword** in SQL.  
@@ -145,7 +145,7 @@ ON c.id = o.customer_id ;
 **Left Anti Join** returns rows from the **left table** that **do NOT have a match** in the right table.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/leftAntiJoin.png" alt="leftAntiJoin" style="width:420px;height:auto;" />
+  <img src="source/leftAntiJoin.png" alt="leftAntiJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Get all customers who **don’t** have any orders._
@@ -164,7 +164,7 @@ WHERE o.customer_id IS NULL; --all the left table data where right table don't h
 **Right Anti Join** returns rows from the **right table** that **do NOT have a match** in the left table.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/rightAntiJoin.png" alt="rightAntiJoin" style="width:420px;height:auto;" />
+  <img src="source/rightAntiJoin.png" alt="rightAntiJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Get all orders that **don’t** have a valid customer in the `customers` table._
@@ -183,7 +183,7 @@ WHERE c.id  IS NULL; --all the right table data where left table don't have entr
 **Full Anti Join** returns rows from **both tables** where there is **no matching row in the other table**.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/fullAntiJoin.png" alt="fullAntiJoin" style="width:420px;height:auto;" />
+  <img src="source/fullAntiJoin.png" alt="fullAntiJoin" style="width:420px;height:auto;" />
 </div>
 
 Use case: _Get all customers and orders that **don’t** have a corresponding valid entry in the other table._
@@ -203,7 +203,7 @@ A **Cross Join** pairs **every row** from one table with **every row** in the ot
 It does **not** require a join condition.
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/crossJoin.png" alt="crossJoin" style="width:420px;height:auto;" />
+  <img src="source/crossJoin.png" alt="crossJoin" style="width:420px;height:auto;" />
 </div>
 
 ```sql
@@ -219,7 +219,7 @@ CROSS JOIN orders o ; --this joins don't need any matching key
 Use this **decision tree** to help you pick the right join:
 
 <div style="text-align:center;">
-  <img src="learning.sql/joins/source/decisionToPickTheJoins.png" alt="decisionToPickTheJoins" style="width:420px;height:auto;" />
+  <img src="source/decisionToPickTheJoins.png" alt="decisionToPickTheJoins" style="width:420px;height:auto;" />
 </div>
 
 - Do you want **only matching rows**? → Use **INNER JOIN** 🔍
