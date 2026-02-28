@@ -133,6 +133,7 @@ ON c.id = o.customer_id ;
 <div style="text-align:center;">
   <img src="source/fullJoin.png" alt="fullJoin" style="width:420px;height:auto;" />
 </div>
+
 ---
 
 ## 🅱️ Advanced Joins (Anti Joins & Special)
