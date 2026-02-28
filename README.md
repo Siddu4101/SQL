@@ -6,3 +6,4 @@
 - ### 📑 [Select Clauses](learning.sql/selectClause/README.md)
 - ### 🧰 [Different Types of Commands](learning.sql/differentTypesOfCommands/README.md)
 - ### 🧹 [Filtering Data](learning.sql/filteringData/README.md)
+- ### 🔗 [Joins](learning.sql/joins/README.md)

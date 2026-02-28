@@ -20,6 +20,7 @@ We can combine data in **two main ways**:
 </div>
 
 ---
+# 1. Column-wise Joins
 
 ## 🧩 Types of Joins (Column-wise)
 When we join two tables, we may want to see:
@@ -243,9 +244,231 @@ We can also join **more than two tables** in a single query to get richer inform
 
 ```sql
 -- Multi-join example: sales_orders + sales_customers + sales_products + sales_employee
-SELECT so.order_id, sc.firstname AS customer_name, sp.product AS product_name, so.sales, sp.price, se.first_name AS sales_person
+SELECT 
+    so.order_id,
+    sc.firstname      AS customer_name,
+    sp.product        AS product_name,
+    so.sales,
+    sp.price,
+    se.first_name     AS sales_person
 FROM sales_orders so
 LEFT JOIN sales_customers sc ON sc.customer_id = so.customer_id
 LEFT JOIN sales_products  sp ON sp.product_id   = so.product_id
 LEFT JOIN sales_employee  se ON se.employee_id  = so.sales_person_id;
 ```
+
+---
+
+# 2. Row-wise Joins (SET Operations)
+
+Row-wise joins (also called **set operations**) combine results from **two `SELECT` queries vertically**.  
+They may **increase or decrease the number of rows**, but the **columns must be compatible**.
+
+### ✅ Rules for Set Operations
+
+1. The **number of columns** must be the same in both queries.  
+2. The **data types** of each column position must be **compatible** (e.g., `INTEGER` with `DECIMAL` is fine; `INTEGER` with `TEXT` is not).  
+3. The **order/position** of columns matters — set operators use **column positions**, **not names**.  
+4. The **final column names / aliases** come from the **first `SELECT`**.  
+5. `ORDER BY` can be used **only once**, and it must be at the **very end** of the full set operation.
+
+> 📐 **General Syntax**
+>
+> ```sql
+> SELECT ...         -- may include WHERE, GROUP BY, JOIN, etc.
+> set_operator       -- UNION, UNION ALL, EXCEPT, INTERSECT, EXCEPT ALL, INTERSECT ALL
+> SELECT ...         -- may include WHERE, GROUP BY, JOIN, etc.
+> ORDER BY ...;      -- only once, at the end
+> ```
+
+<div style="text-align:center;">
+  <img src="source/set/SyntaxForSetOperations.png" alt="SyntaxForSetOperations" style="width:420px;height:auto;" />
+</div>
+
+---
+
+## 🧮 Set Operations Overview
+
+Below are the main **set operators** used with row-wise joins:
+
+| Operator        | What it does (1‑liner) |
+|-----------------|------------------------|
+| `UNION`         | Combines results from both queries and **removes duplicates**. |
+| `UNION ALL`     | Combines results from both queries and **keeps duplicates**. |
+| `EXCEPT`        | Returns **distinct rows from the first query** that are **not present in the second**. |
+| `INTERSECT`     | Returns **distinct rows common** to **both** queries. |
+| `EXCEPT ALL`    | Like `EXCEPT`, but **count-based** and respects duplicates. |
+| `INTERSECT ALL` | Like `INTERSECT`, but **count-based** and respects duplicates. |
+
+---
+
+### 1️⃣ `UNION` – Distinct Rows from Both
+
+➡️ **Goal:** Combine data from **employees** and **customers**, removing duplicates.  
+If `Kevin` and `Mary` appear in both tables with the **same `id` and `name`**, the final result shows them **only once**.
+
+```sql
+-- 1. UNION: all DISTINCT rows from both SELECTs
+
+SELECT sc.firstname AS name, sc.customer_id AS id          -- column names come from the FIRST select
+FROM sales_customers sc              -- each SELECT can have joins, WHERE, GROUP BY, etc.
+UNION                                -- UNION removes duplicate rows
+SELECT se.first_name, se.employee_id
+FROM sales_employee se
+ORDER BY id;                         -- ORDER BY only once, at the end
+```
+
+<div style="text-align:center;">
+  <img src="source/set/union.png" alt="union" style="width:420px;height:auto;" />
+</div>
+
+---
+
+### 2️⃣ `UNION ALL` – Keep All Rows (Including Duplicates)
+
+➡️ **Goal:** Combine data from employees and customers, **keeping duplicates**.  
+`Kevin` and `Mary` will appear **twice** if they exist in **both** tables with the same values.
+
+```sql
+-- 2. UNION ALL: ALL rows, including duplicates
+
+SELECT sc.firstname AS name, sc.customer_id AS id
+FROM sales_customers sc
+UNION ALL                           -- keeps duplicates
+SELECT se.first_name,se.employee_id
+FROM sales_employee se;
+```
+
+<div style="text-align:center;">
+  <img src="source/set/unionAll.png" alt="unionAll" style="width:420px;height:auto;" />
+</div>
+
+> **NOTE:** `UNION ALL` is usually faster than `UNION` because it does **not** check for duplicate rows.
+
+---
+
+### 3️⃣ `EXCEPT` – In First, Not in Second
+
+➡️ **Goal:** Get **customers who are NOT employees** at the same time.  
+If `Kevin` and `Mary` are both **customers and employees**, they will be **removed** from the result.
+
+```sql
+-- 3. EXCEPT: distinct rows from the FIRST query
+--           that are NOT present in the SECOND
+
+SELECT sc.firstname AS name, sc.customer_id AS id
+FROM sales_customers sc
+EXCEPT                               -- keeps only rows from FIRST not in SECOND
+SELECT se.first_name, se.employee_id
+FROM sales_employee se;
+```
+
+<div style="text-align:center;">
+  <img src="source/set/except.png" alt="except" style="width:420px;height:auto;" />
+</div>
+
+> **NOTE:** Order matters here.  
+> `FIRST minus SECOND` ≠ `SECOND minus FIRST`.
+
+---
+
+### 4️⃣ `INTERSECT` – Common Rows in Both
+
+➡️ **Goal:** Get **customers who are also employees**.  
+If only `Kevin` and `Mary` are both customers and employees, only they will appear.
+
+```sql
+-- 4. INTERSECT: distinct rows that are COMMON to both queries
+
+SELECT sc.firstname AS name, sc.customer_id AS id
+FROM sales_customers sc
+INTERSECT                            -- keeps only common distinct rows
+SELECT se.first_name, se.employee_id
+FROM sales_employee se;
+```
+
+<div style="text-align:center;">
+  <img src="source/set/intersect.png" alt="intersect" style="width:420px;height:auto;" />
+</div>
+
+> **NOTE:** Order does **not** matter here — result is the common rows.
+
+---
+
+### 5️⃣ `EXCEPT ALL` – Count-based Difference
+
+`EXCEPT ALL` works like `EXCEPT`, but it uses **counts** of duplicates:
+- For each distinct row: `result_count = count_in_first - count_in_second` (but not below 0).
+
+```sql
+-- EXAMPLE: EXCEPT ALL is count-based
+-- First set has 3 copies of 1, second set has 2 copies of 1
+
+(
+  SELECT 1
+  UNION ALL
+  SELECT 1
+  UNION ALL
+  SELECT 1
+)
+EXCEPT ALL
+(
+  SELECT 1
+  UNION ALL
+  SELECT 1
+);  -- result: a single `1`  (3 - 2 = 1)
+
+-- Without parentheses, evaluation is LEFT to RIGHT
+-- so the behavior changes
+
+SELECT 1
+UNION ALL
+SELECT 1
+UNION ALL
+SELECT 1
+EXCEPT ALL
+SELECT 1
+UNION ALL
+SELECT 1;  -- result: three `1`s (3 - 1 + 1 = 3)
+```
+---
+
+### 6️⃣ `INTERSECT ALL` – Count-based Common Rows
+
+`INTERSECT ALL` keeps rows that are common to both queries, but **respects duplicate counts**:  
+For each distinct row: `result_count = MIN(count_in_first, count_in_second)`.
+
+```sql
+-- EXAMPLE: INTERSECT ALL is count-based
+
+(SELECT 1
+ UNION ALL
+ SELECT 1
+ UNION ALL
+ SELECT 1)
+
+INTERSECT ALL
+
+(SELECT 1
+ UNION ALL
+ SELECT 1);  -- result: two `1`s → MIN(3, 2) = 2
+
+
+SELECT 1
+UNION ALL
+SELECT 1
+UNION ALL
+SELECT 1
+INTERSECT ALL
+SELECT 1
+UNION ALL
+SELECT 1;  -- result: four `1`s
+           -- INTERSECT ALL has higher precedence:
+           --   (1 INTERSECT ALL 1 = 1) + remaining 3 via UNION ALL = 4
+```
+## Summary of set operations:
+
+<div style="text-align:center;">
+  <img src="source/set/setOperationSummary.png" alt="setOperationSummary" style="width:420px;height:auto;" />
+</div>
+
