@@ -73,8 +73,8 @@ Use case: _Select all the customers who have made **at least one** order._
 ```sql
 SELECT c.first_name, o.order_id ,o.sales 
 FROM customers c 
-JOIN orders o 
-ON c.id = o.customer_id; --by default the join INNER u can mention it explicitely 
+JOIN orders o  --by default the join INNER u can mention it explicitely 
+ON c.id = o.customer_id;
 ```
 
 ---
@@ -130,6 +130,9 @@ ON c.id = o.customer_id ;
 
 ```
 
+<div style="text-align:center;">
+  <img src="source/fullJoin.png" alt="fullJoin" style="width:420px;height:auto;" />
+</div>
 ---
 
 ## 🅱️ Advanced Joins (Anti Joins & Special)
