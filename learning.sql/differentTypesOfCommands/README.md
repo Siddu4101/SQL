@@ -88,6 +88,37 @@ WHERE id > 5; -- Without WHERE, all rows are deleted
 TRUNCATE persons;
 ```
 
-> 🔥 Note: Why TRUNCATE can be faster than DELETE?
-> - DELETE: removes row-by-row, logs each deletion (WAL), can be selective via WHERE, and is fully transactional.
-> - TRUNCATE: deallocates table data pages, minimal logging, cannot be selective (affects the whole table). 
+### SOME IMPORTANT POINTS
+
+> ⚡ **Why is `TRUNCATE` often faster than `DELETE`?**
+> - **`DELETE`** 🧹
+>   - Removes rows **one by one**.
+>   - Logs **each row deletion** in the Write-Ahead Log (WAL).
+>   - Can be **selective** using a `WHERE` clause.
+>   - Fully **transactional** (can be rolled back) in most databases.
+>
+> - **`TRUNCATE`** 🪓
+>   - **Deallocates whole data pages** instead of deleting row-by-row.
+>   - Basically **resets metadata** (like storage pages and identity/sequence restart).
+>   - Uses **minimal logging**.
+>   - **Not selective** – it always affects the **entire table**.
+>
+> 🧩 **Why is `TRUNCATE` considered DDL, not DML?**
+> - Even though it **removes data**, `TRUNCATE` works by **manipulating table metadata** (data pages, sequences, etc.).
+> - Because it changes the **structure/metadata** level rather than operating row-by-row, it is classified as **DDL** (Data Definition Language), not DML.
+>
+> 🧾 **Transactional behavior in different databases**
+> - In many databases like **MySQL** and **Oracle**, most **DDL statements** are:
+>   - **Auto-committed** / not part of a transaction, and
+>   - Generally **not rollbackable** (non-transactional).
+>
+> - In **PostgreSQL**, almost all **DDL is transactional**:
+>   - DDL like `TRUNCATE`, `CREATE TABLE`, `ALTER TABLE`, `DROP TABLE`, `INSERT`, `UPDATE`, `DELETE`, etc., can be part of a transaction and **rolled back**.
+>   - Some cluster-level commands are exceptions (not fully transactional), for example:
+>     - `VACUUM`
+>     - `CREATE DATABASE` / `DROP DATABASE`
+>     - `CREATE TABLESPACE` / `DROP TABLESPACE`
+>
+> 💡 **Rule of thumb (PostgreSQL)**
+> - If the command is **database-level** (operating inside a single database), it is **usually transactional**.
+> - If it is **cluster-level** (affecting the whole server/cluster), it may **not be fully transactional**.
