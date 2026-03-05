@@ -135,3 +135,42 @@ SELECT count(*), to_char(so.order_date,'month') AS month FROM sales_orders so  G
 --Q3. show all the orders that were placed in Feb
 SELECT * FROM sales_orders so  WHERE extract(MONTH FROM so.order_date) = 2;
 
+--v. cast: to convert one datatype to another(if it is compatiable)
+-- u can use the '::' or the cast method to do that
+
+SELECT cast(123 AS text) AS "number as text",
+cast(123 AS int) AS "number as int",
+cast('20241231' AS text) AS "date as text",
+cast('20241231' AS date) AS "date as date",
+so.creation_time,
+cast(so.creation_time  AS date) AS "creation time as date"
+FROM sales_orders so ;
+
+SELECT 123::text AS "number as text",
+123::int AS "number as int",
+'20241231'::text AS "date as text",
+'20241231'::date AS "date as date",
+so.creation_time,
+so.creation_time::date "creation time as date"
+FROM sales_orders so;
+
+--vi. INTERVAL: used as a datatype for duration of time like 1 day 2 hours etc.. and it can be used for the addition and substraction of date or the time on the
+--date or time ot datetime component. and we can do multiple components at once for add ot substract
+SELECT so.order_date,
+so.order_date - INTERVAL '10 days' AS before_10_days_of_order_date,
+so.order_date - INTERVAL '4 hours' AS before_4_hours_of_order_date,
+so.order_date + INTERVAL '2 years' AS after_2_years_of_order_date,
+so.order_date + INTERVAL '2 days 2 months 2 years' AS after_2_D_2_M_2_Y_of_order_date --multi date additions
+FROM sales_orders so;
+
+--vii. AGE: which takes 2 date or time or datetime component to cal the difference
+SELECT so.order_date, age(so.order_date, '20251231'::date)order_date_from_2024_EOY FROM sales_orders so;
+
+--Q find the shipping duration of the orders
+SELECT so.order_id, so.order_date, age(so.ship_date , so.order_date ) duration_of_the_order FROM sales_orders so;
+
+--Q: get the average order duration for each month
+SELECT date_part('month',so.order_date) AS MONTH, avg(age(so.ship_date, so.order_date)) FROM sales_orders so GROUP BY date_part('month',so.order_date);
+
+
+

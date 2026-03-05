@@ -190,11 +190,6 @@ SELECT -10 AS negative_num,
 ---
 
 ### c. 📅 Date and Time Functions
-<div style="text-align:center;">
-  <img src="source/singleRowFunctions/dateTimeFunction.png" alt="dateTimeFunction" style="width:420px;height:auto;" />
-</div>
-
-> **!!! Note:** some of the  functions not present in postgres
 
 #### i. `EXTRACT` – Extract parts of a date/time
 
@@ -297,4 +292,78 @@ GROUP BY TO_CHAR(so.order_date, 'month');
 SELECT *
 FROM sales_orders so
 WHERE EXTRACT(MONTH FROM so.order_date) = 2;
+```
+
+---
+
+### d. 🔁 Type Conversion & Date/Time Utility Functions
+
+#### v. 🔄 `CAST` – Convert one data type to another
+
+> Use `CAST(expr AS type)` or the shorthand `expr::type` to convert values between compatible data types.
+
+```sql
+-- Using CAST()
+SELECT CAST(123 AS text)        AS "number as text",
+       CAST(123 AS int)         AS "number as int",
+       CAST('20241231' AS text) AS "date as text",
+       CAST('20241231' AS date) AS "date as date",
+       so.creation_time,
+       CAST(so.creation_time AS date) AS "creation time as date"
+FROM sales_orders so;
+```
+
+```sql
+-- Using :: (PostgreSQL-style cast)
+SELECT 123::text        AS "number as text",
+       123::int         AS "number as int",
+       '20241231'::text AS "date as text",
+       '20241231'::date AS "date as date",
+       so.creation_time,
+       so.creation_time::date AS "creation time as date"
+FROM sales_orders so;
+```
+
+---
+
+#### vi. ⏱️ `INTERVAL` – Work with time durations
+
+> `INTERVAL` represents a **duration of time** (like `1 day`, `2 hours`, `3 months`).
+> You can **add** or **subtract** intervals to/from date or timestamp columns.
+
+```sql
+SELECT so.order_date,
+so.order_date - INTERVAL '10 days'  AS before_10_days_of_order_date,
+so.order_date - INTERVAL '4 hours'  AS before_4_hours_of_order_date,
+so.order_date + INTERVAL '2 years'  AS after_2_years_of_order_date,
+so.order_date + INTERVAL '2 days 2 months 2 years' AS after_2_D_2_M_2_Y_of_order_date -- multi-part interval
+FROM sales_orders so;
+```
+
+---
+
+#### vii. 📏 `AGE` – Calculate the difference between two dates/timestamps
+
+> `AGE(later, earlier)` returns the **time difference** between two date/timestamp values.
+
+```sql
+-- Difference between a future date and order_date
+SELECT so.order_date,
+AGE('2025-12-31'::date, so.order_date) AS order_date_from_2024_EOY
+FROM sales_orders so;
+```
+
+```sql
+-- 🕒 Q: Find the shipping duration of the orders
+SELECT so.order_id, so.order_date, so.ship_date,
+AGE(so.ship_date, so.order_date) AS duration_of_the_order
+FROM sales_orders so;
+```
+
+```sql
+-- 📊 Q: Get the average order duration for each month
+SELECT DATE_PART('month', so.order_date) AS month,
+AVG(AGE(so.ship_date, so.order_date)) AS avg_order_duration
+FROM sales_orders so
+GROUP BY DATE_PART('month', so.order_date);
 ```
