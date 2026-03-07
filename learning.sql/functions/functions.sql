@@ -172,5 +172,61 @@ SELECT so.order_id, so.order_date, age(so.ship_date , so.order_date ) duration_o
 --Q: get the average order duration for each month
 SELECT date_part('month',so.order_date) AS MONTH, avg(age(so.ship_date, so.order_date)) FROM sales_orders so GROUP BY date_part('month',so.order_date);
 
+/*d.NULL Functions*/
+--helpful while dealing with the columns which contains null init
+
+--i.COALESCE: which will take many values and returns the first not null value
+-- any math operation(-,|| etc..) with null result null even if the other values aare non null
+
+--Q: get the fullname of all the customers and give a bonus of 100 score for each
+--without coalesce we will have the null if any name or the score is null
+SELECT sc.firstname, sc.lastname,(firstname||' '||lastname) fullname,score, score+100 bonus_score  FROM sales_customers sc ;
+--with coalesce we will have the name or the score even they are null
+SELECT sc.firstname, sc.lastname,(coalesce(firstname, '')||' '||coalesce(lastname, '')) fullname,score, (coalesce(score,0))+100 bonus_score  FROM sales_customers sc ;
+
+--Q:get the address for each order considering the preority for the address as ship address >> bill address >> 'NOT PROVIDED'
+SELECT order_id, so.ship_address, so.bill_address, coalesce(so.ship_address, so.bill_address, 'NOT PROVIDED') address  FROM sales_orders so;
+
+--even aggregation functions(count(col), avg() etc..) leads wrong result as they won't consider the nulls as value
+-- exceptino: count(*) is exception it still counts if the col has NULL as it considers the rows count not the value of that col
+--Q:get the average score of the customers
+--without coalesce (2500/4 == 625)
+SELECT avg(sc.score) FROM sales_customers sc ;--625 (as skipped one row contain score as null)
+--with coalesce(2500/5==500)
+SELECT avg(coalesce(score, 0)) FROM sales_customers sc;--500 (replaces the null by 0 and consider for avg cal)
+
+--ii. NULLIF: which takes 2 values, value and compareValue if value = compareValue then return NULL else return value
+--helpfull while doing cal like devision to avoid the division by 0 errors
+SELECT ifnull(100,100);--NULL
+SELECT ifnull(100,20);--100
+
+--Q. calculate the sale price for each quantity
+SELECT order_id, so.sales, so.quantity, (so.sales/nullif(so.quantity, 0)) sale_price_per_quantity FROM sales_orders so ;
+
+--iii. IS NULL and IS NOT NULL: helpfull to filter out the data based on null based col and also usefull for anti joins
+--Q: get the all the customers which have noscore
+SELECT * FROM sales_customers sc WHERE sc.score IS NULL;
+
+--Q: get the all the customers which have score
+SELECT * FROM sales_customers sc WHERE sc.score IS NOT NULL;
+
+--Q: select all the customers who have no orders present in oorder table
+SELECT * FROM sales_customers sc
+LEFT JOIN sales_orders so ON sc.customer_id = so.customer_id
+WHERE so.customer_id IS NULL; --left anti join
+
+--iv. NULLS FIRST & NULLS LAST:while sorting NULLS have behaviour as at the first for DESC and at the last for the ASC
+--to override these situation we have above keywords
+
+--Q: sort the customers based on score in DESC order considering the NULLS at the end
+SELECT * FROM sales_customers c ORDER BY score DESC NULLS LAST;
+
+--Q: sort the customers based on score in ASC order considering the NULLS at the top
+SELECT * FROM sales_customers c ORDER BY score ASC NULLS FIRST;
+
+
+
+
+
 
 

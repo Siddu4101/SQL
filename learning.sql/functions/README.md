@@ -296,8 +296,6 @@ WHERE EXTRACT(MONTH FROM so.order_date) = 2;
 
 ---
 
-### d. 🔁 Type Conversion & Date/Time Utility Functions
-
 #### v. 🔄 `CAST` – Convert one data type to another
 
 > Use `CAST(expr AS type)` or the shorthand `expr::type` to convert values between compatible data types.
@@ -367,3 +365,153 @@ AVG(AGE(so.ship_date, so.order_date)) AS avg_order_duration
 FROM sales_orders so
 GROUP BY DATE_PART('month', so.order_date);
 ```
+
+---
+
+### d. 🚫 Null-related Functions
+
+Null-related functions help you **safely handle missing values** and avoid wrong calculations or errors.
+
+#### i. 🧩 `COALESCE` – First non-NULL value
+
+> Takes **multiple values** and returns the **first non-NULL** among them.
+> Any math operation with `NULL` (like `-`, `+`, `||`, etc.) results in `NULL`, even if the other value is non-null.
+
+> 🎯 **Goal:** get the fullname of all the customers and give a bonus of 100 score for each
+
+
+```sql
+-- ❌ Without COALESCE →  we will have the null if any name or the score is null
+SELECT sc.firstname,
+       sc.lastname,
+       (firstname || ' ' || lastname) AS fullname,
+       score,
+       score + 100 AS bonus_score
+FROM sales_customers sc;
+```
+
+```sql
+-- ✅ With COALESCE → handle NULLs gracefully
+SELECT sc.firstname,
+       sc.lastname,
+       (COALESCE(firstname, '') || ' ' || COALESCE(lastname, '')) AS fullname,
+       score,
+       COALESCE(score, 0) + 100 AS bonus_score
+FROM sales_customers sc;
+```
+
+> 🎯 **Goal:** get the address for each order considering the preority for the address as ship address >> bill address >> 'NOT PROVIDED'.
+
+```sql
+SELECT order_id,
+       so.ship_address,
+       so.bill_address,
+       COALESCE(so.ship_address, so.bill_address, 'NOT PROVIDED') AS address
+FROM sales_orders so;
+```
+
+> ⚠ **Important:** Aggregate functions like `AVG(col)` **ignore NULLs**.
+> - This can give **wrong-looking results** if you expected NULLs to be treated as 0.
+> - `COUNT(*)` is an exception – it counts **rows**, not non-null values.
+
+```sql
+> Q: Get the average score of the customers
+-- Suppose total score (including NULL row as 0) should be 2500 with 5 customers
+
+-- ❌ Without COALESCE (2500 / 4 = 625)
+-- One row has score = NULL → ignored by AVG
+SELECT AVG(sc.score) AS avg_score
+FROM sales_customers sc;  -- e.g. 625 (skips NULL row)
+```
+
+```sql
+-- ✅ With COALESCE (2500 / 5 = 500)
+-- Replace NULL with 0 so all rows are included in the average
+SELECT AVG(COALESCE(score, 0)) AS avg_score_including_nulls_as_zero
+FROM sales_customers sc;  -- e.g. 500
+```
+
+---
+
+#### ii. ⚖️ `NULLIF` – Return NULL when two values are equal
+
+> `NULLIF(value, compare_value)`
+> - If `value = compare_value` → returns **NULL**
+> - Else → returns **value**
+>
+> 🔐 Super useful to **avoid division by zero** errors.
+
+```sql
+-- If both values are same → NULL
+SELECT NULLIF(100, 100) AS result;  -- NULL
+
+-- If values are different → first value
+SELECT NULLIF(100, 20) AS result;   -- 100
+```
+
+> 🎯 **Goal:** Calculate sale price per quantity safely.
+
+```sql
+SELECT order_id,
+       so.sales,
+       so.quantity,
+       (so.sales / NULLIF(so.quantity, 0)) AS sale_price_per_quantity
+FROM sales_orders so;
+-- If quantity = 0 → NULLIF(quantity, 0) becomes NULL
+-- so.sales / NULL → result is NULL instead of division-by-zero error
+```
+
+---
+
+#### iii. 🔍 `IS NULL` and `IS NOT NULL` – Filter by NULL values
+
+> These are used to **filter rows** based on whether a column is NULL or not.
+> Also very useful for **anti joins**.
+
+```sql
+-- Q: Get all customers who have NO score
+SELECT *
+FROM sales_customers sc
+WHERE sc.score IS NULL;
+```
+
+```sql
+-- Q: Get all customers who HAVE a score
+SELECT *
+FROM sales_customers sc
+WHERE sc.score IS NOT NULL;
+```
+
+```sql
+-- Q: Select all customers who have NO orders present in orders table (Left Anti Join)
+SELECT *
+FROM sales_customers sc
+LEFT JOIN sales_orders so
+  ON sc.customer_id = so.customer_id
+WHERE so.customer_id IS NULL;  -- customers with no matching order
+```
+
+---
+
+#### iv. 📊 `NULLS FIRST` & `NULLS LAST` – Control sort order of NULLs
+
+> By default:
+> - In **`DESC`** order → NULLs often appear **first**
+> - In **`ASC`** order → NULLs often appear **last**
+>
+> Use `NULLS FIRST` / `NULLS LAST` to **override** this behavior explicitly.
+
+```sql
+-- Q: Sort customers by score in DESC order, keeping NULLs at the END
+SELECT *
+FROM sales_customers c
+ORDER BY score DESC NULLS LAST;
+```
+
+```sql
+-- Q: Sort customers by score in ASC order, keeping NULLs at the TOP
+SELECT *
+FROM sales_customers c
+ORDER BY score ASC NULLS FIRST;
+```
+
