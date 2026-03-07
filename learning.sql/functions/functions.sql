@@ -135,3 +135,151 @@ SELECT count(*), to_char(so.order_date,'month') AS month FROM sales_orders so  G
 --Q3. show all the orders that were placed in Feb
 SELECT * FROM sales_orders so  WHERE extract(MONTH FROM so.order_date) = 2;
 
+--v. cast: to convert one datatype to another(if it is compatiable)
+-- u can use the '::' or the cast method to do that
+
+SELECT cast(123 AS text) AS "number as text",
+cast(123 AS int) AS "number as int",
+cast('20241231' AS text) AS "date as text",
+cast('20241231' AS date) AS "date as date",
+so.creation_time,
+cast(so.creation_time  AS date) AS "creation time as date"
+FROM sales_orders so ;
+
+SELECT 123::text AS "number as text",
+123::int AS "number as int",
+'20241231'::text AS "date as text",
+'20241231'::date AS "date as date",
+so.creation_time,
+so.creation_time::date "creation time as date"
+FROM sales_orders so;
+
+--vi. INTERVAL: used as a datatype for duration of time like 1 day 2 hours etc.. and it can be used for the addition and substraction of date or the time on the
+--date or time ot datetime component. and we can do multiple components at once for add ot substract
+SELECT so.order_date,
+so.order_date - INTERVAL '10 days' AS before_10_days_of_order_date,
+so.order_date - INTERVAL '4 hours' AS before_4_hours_of_order_date,
+so.order_date + INTERVAL '2 years' AS after_2_years_of_order_date,
+so.order_date + INTERVAL '2 days 2 months 2 years' AS after_2_D_2_M_2_Y_of_order_date --multi date additions
+FROM sales_orders so;
+
+--vii. AGE: which takes 2 date or time or datetime component to cal the difference
+SELECT so.order_date, age(so.order_date, '20251231'::date)order_date_from_2024_EOY FROM sales_orders so;
+
+--Q find the shipping duration of the orders
+SELECT so.order_id, so.order_date, age(so.ship_date , so.order_date ) duration_of_the_order FROM sales_orders so;
+
+--Q: get the average order duration for each month
+SELECT date_part('month',so.order_date) AS MONTH, avg(age(so.ship_date, so.order_date)) FROM sales_orders so GROUP BY date_part('month',so.order_date);
+
+/*d.NULL Functions*/
+--helpful while dealing with the columns which contains null init
+
+--i.COALESCE: which will take many values and returns the first not null value
+-- any math operation(-,|| etc..) with null result null even if the other values aare non null
+
+--Q: get the fullname of all the customers and give a bonus of 100 score for each
+--without coalesce we will have the null if any name or the score is null
+SELECT sc.firstname, sc.lastname,(firstname||' '||lastname) fullname,score, score+100 bonus_score  FROM sales_customers sc ;
+--with coalesce we will have the name or the score even they are null
+SELECT sc.firstname, sc.lastname,(coalesce(firstname, '')||' '||coalesce(lastname, '')) fullname,score, (coalesce(score,0))+100 bonus_score  FROM sales_customers sc ;
+
+--Q:get the address for each order considering the preority for the address as ship address >> bill address >> 'NOT PROVIDED'
+SELECT order_id, so.ship_address, so.bill_address, coalesce(so.ship_address, so.bill_address, 'NOT PROVIDED') address  FROM sales_orders so;
+
+--even aggregation functions(count(col), avg() etc..) leads wrong result as they won't consider the nulls as value
+-- exceptino: count(*) is exception it still counts if the col has NULL as it considers the rows count not the value of that col
+--Q:get the average score of the customers
+--without coalesce (2500/4 == 625)
+SELECT avg(sc.score) FROM sales_customers sc ;--625 (as skipped one row contain score as null)
+--with coalesce(2500/5==500)
+SELECT avg(coalesce(score, 0)) FROM sales_customers sc;--500 (replaces the null by 0 and consider for avg cal)
+
+--ii. NULLIF: which takes 2 values, value and compareValue if value = compareValue then return NULL else return value
+--helpfull while doing cal like devision to avoid the division by 0 errors
+SELECT ifnull(100,100);--NULL
+SELECT ifnull(100,20);--100
+
+--Q. calculate the sale price for each quantity
+SELECT order_id, so.sales, so.quantity, (so.sales/nullif(so.quantity, 0)) sale_price_per_quantity FROM sales_orders so ;
+
+--iii. IS NULL and IS NOT NULL: helpfull to filter out the data based on null based col and also usefull for anti joins
+--Q: get the all the customers which have noscore
+SELECT * FROM sales_customers sc WHERE sc.score IS NULL;
+
+--Q: get the all the customers which have score
+SELECT * FROM sales_customers sc WHERE sc.score IS NOT NULL;
+
+--Q: select all the customers who have no orders present in oorder table
+SELECT * FROM sales_customers sc
+LEFT JOIN sales_orders so ON sc.customer_id = so.customer_id
+WHERE so.customer_id IS NULL; --left anti join
+
+--iv. NULLS FIRST & NULLS LAST:while sorting NULLS have behaviour as at the first for DESC and at the last for the ASC
+--to override these situation we have above keywords
+
+--Q: sort the customers based on score in DESC order considering the NULLS at the end
+SELECT * FROM sales_customers c ORDER BY score DESC NULLS LAST;
+
+--Q: sort the customers based on score in ASC order considering the NULLS at the top
+SELECT * FROM sales_customers c ORDER BY score ASC NULLS FIRST;
+
+/*e. CASE STATEMENTS:*/
+--case statements are used as if, else if and else statements in sql else is optional
+-- the output (after THEN and ELSE) should have the same datatype throughout the case statement.
+SELECT sales,
+CASE --start of the case statement
+	WHEN so.sales > 50 THEN 'HIGH'--if
+	WHEN so.sales > 20 THEN 'MEDIUM'--else if
+	ELSE 'LOW' --else (optional)
+END AS category --end of the case statement
+FROM sales_orders so;
+
+--Q:find the total sum for each category of the sales and order them by highest sales
+SELECT
+CASE
+	WHEN so.sales > 50 THEN 'HIGH'
+	WHEN so.sales > 20 THEN 'MEDIUM'
+	ELSE 'LOW'
+END AS category, sum(sales) sales
+FROM sales_orders so GROUP BY category ORDER BY sales DESC;
+
+--Q.Display the employee gender fully not just a flag as M or F
+SELECT se.first_name, se.gender,
+CASE
+	WHEN se.gender = 'M' THEN 'MALE'
+	WHEN se.gender = 'F' THEN 'FEMALE'
+	ELSE 'NOT DECLARED'
+END AS full_gender
+FROM sales_employee se;
+
+--OR
+--we can have simpler case statement when we have the simple  single col with multiple value as eual check we can do like below
+--SIMPLER CASE: only when we have single col all with euqal checks
+SELECT se.first_name, se.gender,
+CASE se.gender
+	WHEN 'M' THEN 'MALE'
+	WHEN 'F' THEN 'FEMALE'
+	ELSE 'NOT DECLARED'
+END AS full_gender
+FROM sales_employee se;
+
+
+--Q: get the average scores of the customers considering the nulls as 0
+SELECT
+avg(CASE
+	WHEN sc.score IS NULL THEN 0
+	ELSE sc.score
+END) average_score
+FROM sales_customers sc ;--500
+
+--Q: How many times each customer has made a order with sales >30
+SELECT customer_id, count(sales) FROM sales_orders so WHERE so.sales > 30  GROUP BY customer_id ; -- here it misses the entries where we have customer with no order >30
+
+--correct way is
+SELECT customer_id, sum(greater_than_30) orders_greater_than_30_rs, count(*) total_orders_of_customer FROM
+(SELECT *, CASE
+	WHEN sales > 30 THEN 1
+	ELSE 0
+END greater_than_30
+FROM sales_orders so) GROUP BY customer_id ;

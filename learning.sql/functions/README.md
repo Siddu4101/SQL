@@ -190,11 +190,6 @@ SELECT -10 AS negative_num,
 ---
 
 ### c. 📅 Date and Time Functions
-<div style="text-align:center;">
-  <img src="source/singleRowFunctions/dateTimeFunction.png" alt="dateTimeFunction" style="width:420px;height:auto;" />
-</div>
-
-> **!!! Note:** some of the  functions not present in postgres
 
 #### i. `EXTRACT` – Extract parts of a date/time
 
@@ -298,3 +293,350 @@ SELECT *
 FROM sales_orders so
 WHERE EXTRACT(MONTH FROM so.order_date) = 2;
 ```
+
+---
+
+#### v. 🔄 `CAST` – Convert one data type to another
+
+> Use `CAST(expr AS type)` or the shorthand `expr::type` to convert values between compatible data types.
+
+```sql
+-- Using CAST()
+SELECT CAST(123 AS text)        AS "number as text",
+       CAST(123 AS int)         AS "number as int",
+       CAST('20241231' AS text) AS "date as text",
+       CAST('20241231' AS date) AS "date as date",
+       so.creation_time,
+       CAST(so.creation_time AS date) AS "creation time as date"
+FROM sales_orders so;
+```
+
+```sql
+-- Using :: (PostgreSQL-style cast)
+SELECT 123::text        AS "number as text",
+       123::int         AS "number as int",
+       '20241231'::text AS "date as text",
+       '20241231'::date AS "date as date",
+       so.creation_time,
+       so.creation_time::date AS "creation time as date"
+FROM sales_orders so;
+```
+
+---
+
+#### vi. ⏱️ `INTERVAL` – Work with time durations
+
+> `INTERVAL` represents a **duration of time** (like `1 day`, `2 hours`, `3 months`).
+> You can **add** or **subtract** intervals to/from date or timestamp columns.
+
+```sql
+SELECT so.order_date,
+so.order_date - INTERVAL '10 days'  AS before_10_days_of_order_date,
+so.order_date - INTERVAL '4 hours'  AS before_4_hours_of_order_date,
+so.order_date + INTERVAL '2 years'  AS after_2_years_of_order_date,
+so.order_date + INTERVAL '2 days 2 months 2 years' AS after_2_D_2_M_2_Y_of_order_date -- multi-part interval
+FROM sales_orders so;
+```
+
+---
+
+#### vii. 📏 `AGE` – Calculate the difference between two dates/timestamps
+
+> `AGE(later, earlier)` returns the **time difference** between two date/timestamp values.
+
+```sql
+-- Difference between a future date and order_date
+SELECT so.order_date,
+AGE('2025-12-31'::date, so.order_date) AS order_date_from_2024_EOY
+FROM sales_orders so;
+```
+
+```sql
+-- 🕒 Q: Find the shipping duration of the orders
+SELECT so.order_id, so.order_date, so.ship_date,
+AGE(so.ship_date, so.order_date) AS duration_of_the_order
+FROM sales_orders so;
+```
+
+```sql
+-- 📊 Q: Get the average order duration for each month
+SELECT DATE_PART('month', so.order_date) AS month,
+AVG(AGE(so.ship_date, so.order_date)) AS avg_order_duration
+FROM sales_orders so
+GROUP BY DATE_PART('month', so.order_date);
+```
+
+---
+
+### d. 🚫 Null-related Functions
+
+Null-related functions help you **safely handle missing values** and avoid wrong calculations or errors.
+
+#### i. 🧩 `COALESCE` – First non-NULL value
+
+> Takes **multiple values** and returns the **first non-NULL** among them.
+> Any math operation with `NULL` (like `-`, `+`, `||`, etc.) results in `NULL`, even if the other value is non-null.
+
+> 🎯 **Goal:** get the fullname of all the customers and give a bonus of 100 score for each
+
+
+```sql
+-- ❌ Without COALESCE →  we will have the null if any name or the score is null
+SELECT sc.firstname,
+       sc.lastname,
+       (firstname || ' ' || lastname) AS fullname,
+       score,
+       score + 100 AS bonus_score
+FROM sales_customers sc;
+```
+
+```sql
+-- ✅ With COALESCE → handle NULLs gracefully
+SELECT sc.firstname,
+       sc.lastname,
+       (COALESCE(firstname, '') || ' ' || COALESCE(lastname, '')) AS fullname,
+       score,
+       COALESCE(score, 0) + 100 AS bonus_score
+FROM sales_customers sc;
+```
+
+> 🎯 **Goal:** get the address for each order considering the preority for the address as ship address >> bill address >> 'NOT PROVIDED'.
+
+```sql
+SELECT order_id,
+       so.ship_address,
+       so.bill_address,
+       COALESCE(so.ship_address, so.bill_address, 'NOT PROVIDED') AS address
+FROM sales_orders so;
+```
+
+> ⚠ **Important:** Aggregate functions like `AVG(col)` **ignore NULLs**.
+> - This can give **wrong-looking results** if you expected NULLs to be treated as 0.
+> - `COUNT(*)` is an exception – it counts **rows**, not non-null values.
+
+```sql
+> Q: Get the average score of the customers
+-- Suppose total score (including NULL row as 0) should be 2500 with 5 customers
+
+-- ❌ Without COALESCE (2500 / 4 = 625)
+-- One row has score = NULL → ignored by AVG
+SELECT AVG(sc.score) AS avg_score
+FROM sales_customers sc;  -- e.g. 625 (skips NULL row)
+```
+
+```sql
+-- ✅ With COALESCE (2500 / 5 = 500)
+-- Replace NULL with 0 so all rows are included in the average
+SELECT AVG(COALESCE(score, 0)) AS avg_score_including_nulls_as_zero
+FROM sales_customers sc;  -- e.g. 500
+```
+
+---
+
+#### ii. ⚖️ `NULLIF` – Return NULL when two values are equal
+
+> `NULLIF(value, compare_value)`
+> - If `value = compare_value` → returns **NULL**
+> - Else → returns **value**
+>
+> 🔐 Super useful to **avoid division by zero** errors.
+
+```sql
+-- If both values are same → NULL
+SELECT NULLIF(100, 100) AS result;  -- NULL
+
+-- If values are different → first value
+SELECT NULLIF(100, 20) AS result;   -- 100
+```
+
+> 🎯 **Goal:** Calculate sale price per quantity safely.
+
+```sql
+SELECT order_id,
+       so.sales,
+       so.quantity,
+       (so.sales / NULLIF(so.quantity, 0)) AS sale_price_per_quantity
+FROM sales_orders so;
+-- If quantity = 0 → NULLIF(quantity, 0) becomes NULL
+-- so.sales / NULL → result is NULL instead of division-by-zero error
+```
+
+---
+
+#### iii. 🔍 `IS NULL` and `IS NOT NULL` – Filter by NULL values
+
+> These are used to **filter rows** based on whether a column is NULL or not.
+> Also very useful for **anti joins**.
+
+```sql
+-- Q: Get all customers who have NO score
+SELECT *
+FROM sales_customers sc
+WHERE sc.score IS NULL;
+```
+
+```sql
+-- Q: Get all customers who HAVE a score
+SELECT *
+FROM sales_customers sc
+WHERE sc.score IS NOT NULL;
+```
+
+```sql
+-- Q: Select all customers who have NO orders present in orders table (Left Anti Join)
+SELECT *
+FROM sales_customers sc
+LEFT JOIN sales_orders so
+  ON sc.customer_id = so.customer_id
+WHERE so.customer_id IS NULL;  -- customers with no matching order
+```
+
+---
+
+#### iv. 📊 `NULLS FIRST` & `NULLS LAST` – Control sort order of NULLs
+
+> By default:
+> - In **`DESC`** order → NULLs often appear **first**
+> - In **`ASC`** order → NULLs often appear **last**
+>
+> Use `NULLS FIRST` / `NULLS LAST` to **override** this behavior explicitly.
+
+```sql
+-- Q: Sort customers by score in DESC order, keeping NULLs at the END
+SELECT *
+FROM sales_customers c
+ORDER BY score DESC NULLS LAST;
+```
+
+```sql
+-- Q: Sort customers by score in ASC order, keeping NULLs at the TOP
+SELECT *
+FROM sales_customers c
+ORDER BY score ASC NULLS FIRST;
+```
+
+---
+
+### e. 🧩 CASE Statements
+
+CASE statements in SQL work like **if / else-if / else** in programming. They let you return **different values** based on conditions.
+
+> ✅ Tips
+> - Use CASE when you need **conditional logic** inside a query.
+> - The expressions after `THEN` and `ELSE` should all have **compatible data types**.
+> - You can use CASE in the `SELECT`, `WHERE`, `ORDER BY`, or even inside aggregate functions.
+
+---
+
+#### 1️⃣ Searched CASE – Flexible conditions
+
+This form checks **general conditions** in each `WHEN`.
+
+```sql
+-- 🎯 Classify orders into HIGH / MEDIUM / LOW based on sales
+SELECT so.sales,
+       CASE                      -- start of the CASE expression
+         WHEN so.sales > 50 THEN 'HIGH'    -- if
+         WHEN so.sales > 20 THEN 'MEDIUM'  -- else if
+         ELSE 'LOW'                        -- else (optional)
+       END AS category           -- end of the CASE expression
+FROM sales_orders so;
+```
+
+```sql
+-- 🎯 Total sales for each category, ordered by highest total sales
+SELECT
+  CASE
+    WHEN so.sales > 50 THEN 'HIGH'
+    WHEN so.sales > 20 THEN 'MEDIUM'
+    ELSE 'LOW'
+  END AS category,
+  SUM(so.sales) AS sales
+FROM sales_orders so
+GROUP BY category
+ORDER BY sales DESC;
+```
+
+---
+
+#### 2️⃣ Simple CASE – Compare one column to many values
+
+Use this when you are **comparing the same column** to different constant values.
+
+```sql
+-- 🎯 Show full gender text instead of just a flag (M / F)
+SELECT se.first_name,
+       se.gender,
+       CASE
+         WHEN se.gender = 'M' THEN 'MALE'
+         WHEN se.gender = 'F' THEN 'FEMALE'
+         ELSE 'NOT DECLARED'
+       END AS full_gender
+FROM sales_employee se;
+```
+
+```sql
+-- ✅ Simpler CASE syntax when all checks are equality on the same column
+-- SIMPLER CASE: only when we have single column with equal (=) checks
+SELECT se.first_name,
+       se.gender,
+       CASE se.gender
+         WHEN 'M' THEN 'MALE'
+         WHEN 'F' THEN 'FEMALE'
+         ELSE 'NOT DECLARED'
+       END AS full_gender
+FROM sales_employee se;
+```
+
+---
+
+#### 3️⃣ CASE inside aggregates – Treat rows conditionally
+
+You can use CASE inside aggregate functions like `AVG`, `SUM`, etc.
+
+```sql
+-- 🎯 Get the average score of the customers, treating NULL scores as 0
+SELECT AVG(
+         CASE
+           WHEN sc.score IS NULL THEN 0
+           ELSE sc.score
+         END
+       ) AS average_score
+FROM sales_customers sc;  -- e.g. 500
+```
+
+---
+
+#### 4️⃣ Pattern: Count conditional events per group
+
+> ❌ Problem pattern: Filtering in the `WHERE` clause can **drop rows** you might want to count as zero.
+
+```sql
+-- Q: How many times each customer has made an order with sales > 30?
+-- ❌ Incorrect: this misses customers who have no orders with sales > 30
+SELECT customer_id,
+       COUNT(sales) AS orders_with_sales_over_30
+FROM sales_orders so
+WHERE so.sales > 30
+GROUP BY customer_id;
+```
+
+> ✅ Correct pattern: Use CASE to create a 0/1 flag **for all rows**, then aggregate.
+
+```sql
+SELECT customer_id,
+       SUM(greater_than_30) AS orders_greater_than_30_rs,
+       COUNT(*)             AS total_orders_of_customer
+FROM (
+  SELECT so.*, 
+         CASE
+           WHEN so.sales > 30 THEN 1
+           ELSE 0
+         END AS greater_than_30
+  FROM sales_orders so
+) t
+GROUP BY customer_id;
+```
+
+---
+
