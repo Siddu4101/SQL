@@ -515,3 +515,128 @@ FROM sales_customers c
 ORDER BY score ASC NULLS FIRST;
 ```
 
+---
+
+### e. 🧩 CASE Statements
+
+CASE statements in SQL work like **if / else-if / else** in programming. They let you return **different values** based on conditions.
+
+> ✅ Tips
+> - Use CASE when you need **conditional logic** inside a query.
+> - The expressions after `THEN` and `ELSE` should all have **compatible data types**.
+> - You can use CASE in the `SELECT`, `WHERE`, `ORDER BY`, or even inside aggregate functions.
+
+---
+
+#### 1️⃣ Searched CASE – Flexible conditions
+
+This form checks **general conditions** in each `WHEN`.
+
+```sql
+-- 🎯 Classify orders into HIGH / MEDIUM / LOW based on sales
+SELECT so.sales,
+       CASE                      -- start of the CASE expression
+         WHEN so.sales > 50 THEN 'HIGH'    -- if
+         WHEN so.sales > 20 THEN 'MEDIUM'  -- else if
+         ELSE 'LOW'                        -- else (optional)
+       END AS category           -- end of the CASE expression
+FROM sales_orders so;
+```
+
+```sql
+-- 🎯 Total sales for each category, ordered by highest total sales
+SELECT
+  CASE
+    WHEN so.sales > 50 THEN 'HIGH'
+    WHEN so.sales > 20 THEN 'MEDIUM'
+    ELSE 'LOW'
+  END AS category,
+  SUM(so.sales) AS sales
+FROM sales_orders so
+GROUP BY category
+ORDER BY sales DESC;
+```
+
+---
+
+#### 2️⃣ Simple CASE – Compare one column to many values
+
+Use this when you are **comparing the same column** to different constant values.
+
+```sql
+-- 🎯 Show full gender text instead of just a flag (M / F)
+SELECT se.first_name,
+       se.gender,
+       CASE
+         WHEN se.gender = 'M' THEN 'MALE'
+         WHEN se.gender = 'F' THEN 'FEMALE'
+         ELSE 'NOT DECLARED'
+       END AS full_gender
+FROM sales_employee se;
+```
+
+```sql
+-- ✅ Simpler CASE syntax when all checks are equality on the same column
+-- SIMPLER CASE: only when we have single column with equal (=) checks
+SELECT se.first_name,
+       se.gender,
+       CASE se.gender
+         WHEN 'M' THEN 'MALE'
+         WHEN 'F' THEN 'FEMALE'
+         ELSE 'NOT DECLARED'
+       END AS full_gender
+FROM sales_employee se;
+```
+
+---
+
+#### 3️⃣ CASE inside aggregates – Treat rows conditionally
+
+You can use CASE inside aggregate functions like `AVG`, `SUM`, etc.
+
+```sql
+-- 🎯 Get the average score of the customers, treating NULL scores as 0
+SELECT AVG(
+         CASE
+           WHEN sc.score IS NULL THEN 0
+           ELSE sc.score
+         END
+       ) AS average_score
+FROM sales_customers sc;  -- e.g. 500
+```
+
+---
+
+#### 4️⃣ Pattern: Count conditional events per group
+
+> ❌ Problem pattern: Filtering in the `WHERE` clause can **drop rows** you might want to count as zero.
+
+```sql
+-- Q: How many times each customer has made an order with sales > 30?
+-- ❌ Incorrect: this misses customers who have no orders with sales > 30
+SELECT customer_id,
+       COUNT(sales) AS orders_with_sales_over_30
+FROM sales_orders so
+WHERE so.sales > 30
+GROUP BY customer_id;
+```
+
+> ✅ Correct pattern: Use CASE to create a 0/1 flag **for all rows**, then aggregate.
+
+```sql
+SELECT customer_id,
+       SUM(greater_than_30) AS orders_greater_than_30_rs,
+       COUNT(*)             AS total_orders_of_customer
+FROM (
+  SELECT so.*, 
+         CASE
+           WHEN so.sales > 30 THEN 1
+           ELSE 0
+         END AS greater_than_30
+  FROM sales_orders so
+) t
+GROUP BY customer_id;
+```
+
+---
+

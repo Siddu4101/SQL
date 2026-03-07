@@ -224,9 +224,62 @@ SELECT * FROM sales_customers c ORDER BY score DESC NULLS LAST;
 --Q: sort the customers based on score in ASC order considering the NULLS at the top
 SELECT * FROM sales_customers c ORDER BY score ASC NULLS FIRST;
 
+/*e. CASE STATEMENTS:*/
+--case statements are used as if, else if and else statements in sql else is optional
+-- the output (after THEN and ELSE) should have the same datatype throughout the case statement.
+SELECT sales,
+CASE --start of the case statement
+	WHEN so.sales > 50 THEN 'HIGH'--if
+	WHEN so.sales > 20 THEN 'MEDIUM'--else if
+	ELSE 'LOW' --else (optional)
+END AS category --end of the case statement
+FROM sales_orders so;
+
+--Q:find the total sum for each category of the sales and order them by highest sales
+SELECT
+CASE
+	WHEN so.sales > 50 THEN 'HIGH'
+	WHEN so.sales > 20 THEN 'MEDIUM'
+	ELSE 'LOW'
+END AS category, sum(sales) sales
+FROM sales_orders so GROUP BY category ORDER BY sales DESC;
+
+--Q.Display the employee gender fully not just a flag as M or F
+SELECT se.first_name, se.gender,
+CASE
+	WHEN se.gender = 'M' THEN 'MALE'
+	WHEN se.gender = 'F' THEN 'FEMALE'
+	ELSE 'NOT DECLARED'
+END AS full_gender
+FROM sales_employee se;
+
+--OR
+--we can have simpler case statement when we have the simple  single col with multiple value as eual check we can do like below
+--SIMPLER CASE: only when we have single col all with euqal checks
+SELECT se.first_name, se.gender,
+CASE se.gender
+	WHEN 'M' THEN 'MALE'
+	WHEN 'F' THEN 'FEMALE'
+	ELSE 'NOT DECLARED'
+END AS full_gender
+FROM sales_employee se;
 
 
+--Q: get the average scores of the customers considering the nulls as 0
+SELECT
+avg(CASE
+	WHEN sc.score IS NULL THEN 0
+	ELSE sc.score
+END) average_score
+FROM sales_customers sc ;--500
 
+--Q: How many times each customer has made a order with sales >30
+SELECT customer_id, count(sales) FROM sales_orders so WHERE so.sales > 30  GROUP BY customer_id ; -- here it misses the entries where we have customer with no order >30
 
-
-
+--correct way is
+SELECT customer_id, sum(greater_than_30) orders_greater_than_30_rs, count(*) total_orders_of_customer FROM
+(SELECT *, CASE
+	WHEN sales > 30 THEN 1
+	ELSE 0
+END greater_than_30
+FROM sales_orders so) GROUP BY customer_id ;
